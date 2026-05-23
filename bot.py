@@ -19,7 +19,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-client = TelegramClient("maimai_bot", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+client = TelegramClient("maimai_bot", API_ID, API_HASH)
 
 SONGS_PER_PAGE = 8
 
@@ -352,6 +352,7 @@ async def block_group_adds(event):
 
 async def main():
     init_db()
+    await client.start(bot_token=BOT_TOKEN)
     logger.info("maimai Songs Bot started.")
     await client.run_until_disconnected()
 
