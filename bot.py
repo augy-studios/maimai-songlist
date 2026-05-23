@@ -1,6 +1,7 @@
 import os
 import asyncio
 import logging
+import html
 from dotenv import load_dotenv
 from telethon import TelegramClient, events, Button
 from telethon.tl.types import InputPeerEmpty
@@ -20,6 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 client = TelegramClient("maimai_bot", API_ID, API_HASH)
+client.parse_mode = "html"
 
 SONGS_PER_PAGE = 8
 
@@ -67,9 +69,9 @@ def format_song(song: dict) -> str:
     """Format a single song entry for display."""
     cat = CATEGORY_DISPLAY.get(song["catcode"], song["catcode"])
     lines = [
-        f"🎵 **{song['title']}**",
-        f"👤 {song['artist']}",
-        f"📂 {cat}",
+        f"🎵 <b>{html.escape(song['title'])}</b>",
+        f"👤 {html.escape(song['artist'])}",
+        f"📂 {html.escape(cat)}",
     ]
 
     # Standard charts
@@ -77,26 +79,26 @@ def format_song(song: dict) -> str:
     for diff, label in [("lev_bas", "BAS"), ("lev_adv", "ADV"), ("lev_exp", "EXP"),
                          ("lev_mas", "MAS"), ("lev_remas", "Re:MAS")]:
         if song.get(diff):
-            std.append(f"{label} {song[diff]}")
+            std.append(f"{label} {html.escape(str(song[diff]))}")
     if std:
-        lines.append("📊 **STD:** " + " │ ".join(std))
+        lines.append("📊 <b>STD:</b> " + " │ ".join(std))
 
     # DX charts
     dx = []
     for diff, label in [("dx_lev_bas", "BAS"), ("dx_lev_adv", "ADV"), ("dx_lev_exp", "EXP"),
                          ("dx_lev_mas", "MAS"), ("dx_lev_remas", "Re:MAS")]:
         if song.get(diff):
-            dx.append(f"{label} {song[diff]}")
+            dx.append(f"{label} {html.escape(str(song[diff]))}")
     if dx:
-        lines.append("📊 **DX:** " + " │ ".join(dx))
+        lines.append("📊 <b>DX:</b> " + " │ ".join(dx))
 
     # Utage (宴会場)
     if song.get("lev_utage"):
-        utage_info = f"🎊 **UTAGE:** {song['lev_utage']}"
+        utage_info = f"🎊 <b>UTAGE:</b> {html.escape(str(song['lev_utage']))}"
         if song.get("kanji"):
-            utage_info += f"  [{song['kanji']}]"
+            utage_info += f"  [{html.escape(str(song['kanji']))}]"
         if song.get("comment"):
-            utage_info += f"\n💬 _{song['comment']}_"
+            utage_info += f"\n💬 <i>{html.escape(str(song['comment']))}</i>"
         if song.get("buddy") == "○":
             utage_info += "  👥 Buddy"
         lines.append(utage_info)
@@ -121,7 +123,7 @@ def paginate_song_list(songs: list, page: int, context: str) -> tuple[str, list]
 
     lines = [f"📄 Page {page + 1}/{total_pages}  ({total} songs)\n"]
     for i, s in enumerate(chunk, start=start + 1):
-        lines.append(f"{i}. **{s['title']}** — _{s['artist']}_")
+        lines.append(f"{i}. <b>{html.escape(s['title'])}</b> — <i>{html.escape(s['artist'])}</i>")
 
     text = "\n".join(lines)
 
@@ -152,25 +154,28 @@ def paginate_song_list(songs: list, page: int, context: str) -> tuple[str, list]
 
 # ─── /start ───────────────────────────────────────────────────────────────────
 
-@client.on(events.NewMessage(pattern=r"^/start$"))
-async def cmd_start(event):
-    if event.is_group or event.is_channel:
-        return
+def make_start_text() -> str:
     total = get_song_count()
-    text = (
-        "👋 **Welcome to the maimai Song Browser!**\n\n"
-        f"I have **{total} songs** in my database.\n\n"
-        "**What I can do:**\n"
+    return (
+        "👋 <b>Welcome to the maimai Song Browser!</b>\n\n"
+        f"I have <b>{total} songs</b> in my database.\n\n"
+        "<b>What I can do:</b>\n"
         "• Browse songs by category using the buttons below\n"
         "• Type any song title or artist name to search\n\n"
-        "**Commands:**\n"
+        "<b>Commands:</b>\n"
         "/start - Show this menu\n"
         "/random - Get a random song\n"
         "/stats - Show database statistics\n"
         "/help - Show detailed help\n\n"
-        "👇 **Pick a category to browse:**"
+        "👇 <b>Pick a category to browse:</b>"
     )
-    await event.respond(text, buttons=make_category_buttons())
+
+
+@client.on(events.NewMessage(pattern=r"^/start$"))
+async def cmd_start(event):
+    if event.is_group or event.is_channel:
+        return
+    await event.respond(make_start_text(), buttons=make_category_buttons())
 
 
 # ─── /help ────────────────────────────────────────────────────────────────────
@@ -180,22 +185,22 @@ async def cmd_help(event):
     if event.is_group or event.is_channel:
         return
     text = (
-        "📖 **How to use this bot**\n\n"
-        "**Browsing:**\n"
+        "📖 <b>How to use this bot</b>\n\n"
+        "<b>Browsing:</b>\n"
         "Use /start to open the category menu. Select a category to see all songs in it. "
         "Navigate pages with the ◀ Prev / Next ▶ buttons. "
         "Tap any song title to see its full details.\n\n"
-        "**Searching:**\n"
+        "<b>Searching:</b>\n"
         "Just type anything - a song title, artist name, or part of either. "
         "The search is instant and matches both fields.\n"
-        "_Example:_ `bad apple`\n"
-        "_Example:_ `DECO*27`\n\n"
-        "**Commands:**\n"
+        "<i>Example:</i> <code>bad apple</code>\n"
+        "<i>Example:</i> <code>DECO*27</code>\n\n"
+        "<b>Commands:</b>\n"
         "/start - Main menu with category browser\n"
         "/random - Surprise me with a random song\n"
         "/stats - Song counts by category\n"
         "/help - This message\n\n"
-        "**Difficulty labels:**\n"
+        "<b>Difficulty labels:</b>\n"
         "BAS = Basic  │  ADV = Advanced  │  EXP = Expert\n"
         "MAS = Master  │  Re:MAS = Re:Master\n"
         "STD = Standard charts  │  DX = Deluxe charts"
@@ -215,7 +220,7 @@ async def cmd_random(event):
     if not song:
         await event.respond("No songs found in the database.")
         return
-    text = "🎲 **Random Song**\n\n" + format_song(song)
+    text = "🎲 <b>Random Song</b>\n\n" + format_song(song)
     await event.respond(
         text,
         buttons=[[Button.inline("🎲 Another random", data="random"),
@@ -232,13 +237,13 @@ async def cmd_stats(event):
     from db import get_stats
     stats = get_stats()
     total = sum(v for v in stats.values())
-    lines = ["📊 **Song Database Statistics**\n"]
+    lines = ["📊 <b>Song Database Statistics</b>\n"]
     for cat, count in sorted(stats.items(), key=lambda x: -x[1]):
         label = CATEGORY_DISPLAY.get(cat, cat)
         emoji = CATEGORY_EMOJI.get(cat, "🎵")
         bar = "█" * min(20, count // 10)
-        lines.append(f"{emoji} **{label}**\n   {count} songs  {bar}")
-    lines.append(f"\n**Total: {total} songs**")
+        lines.append(f"{emoji} <b>{html.escape(label)}</b>\n   {count} songs  {bar}")
+    lines.append(f"\n<b>Total: {total} songs</b>")
     await event.respond("\n".join(lines))
 
 
@@ -255,19 +260,19 @@ async def handle_search(event):
     results = search_songs(text)
     if not results:
         await event.respond(
-            f"🔍 No songs found for **{text}**\n\nTry a different keyword or browse by category with /start"
+            f"🔍 No songs found for <b>{html.escape(text)}</b>\n\nTry a different keyword or browse by category with /start"
         )
         return
 
     if len(results) == 1:
-        await event.respond("🔍 **Found 1 song:**\n\n" + format_song(results[0]))
+        await event.respond("🔍 <b>Found 1 song:</b>\n\n" + format_song(results[0]))
         return
 
     # Cache search results temporarily using inline data with query embedded
     # For multi-page search results we encode the query in callback data
     query_encoded = text[:40].replace("|", " ")  # sanitise for callback data
     page_text, buttons = paginate_song_list(results, 0, f"search|{query_encoded}")
-    await event.respond(f"🔍 **Results for \"{text}\":**\n\n" + page_text, buttons=buttons)
+    await event.respond(f"🔍 <b>Results for \"{html.escape(text)}\":</b>\n\n" + page_text, buttons=buttons)
 
 
 # ─── Callback queries ─────────────────────────────────────────────────────────
@@ -286,7 +291,7 @@ async def handle_callback(event):
         label = CATEGORY_DISPLAY.get(cat_key, cat_key)
         emoji = CATEGORY_EMOJI.get(cat_key, "🎵")
         page_text, buttons = paginate_song_list(songs, page, f"cat|{cat_key}")
-        await event.edit(f"{emoji} **{label}**\n\n" + page_text, buttons=buttons)
+        await event.edit(f"{emoji} <b>{html.escape(label)}</b>\n\n" + page_text, buttons=buttons)
 
     # ── Search pagination ──
     elif action == "search":
@@ -294,7 +299,7 @@ async def handle_callback(event):
         page = int(parts[2])
         results = search_songs(query)
         page_text, buttons = paginate_song_list(results, page, f"search|{query}")
-        await event.edit(f"🔍 **Results for \"{query}\":**\n\n" + page_text, buttons=buttons)
+        await event.edit(f"🔍 <b>Results for \"{html.escape(query)}\":</b>\n\n" + page_text, buttons=buttons)
 
     # ── Song detail ──
     elif action == "detail":
@@ -312,12 +317,7 @@ async def handle_callback(event):
 
     # ── Back to categories ──
     elif action == "back_to_categories":
-        total = get_song_count()
-        text = (
-            "👇 **Pick a category to browse:**\n"
-            f"_(Total: {total} songs)_"
-        )
-        await event.edit(text, buttons=make_category_buttons())
+        await event.edit(make_start_text(), buttons=make_category_buttons())
 
     # ── Random ──
     elif action == "random":
@@ -326,7 +326,7 @@ async def handle_callback(event):
         if not song:
             await event.answer("No songs found.", alert=True)
             return
-        text = "🎲 **Random Song**\n\n" + format_song(song)
+        text = "🎲 <b>Random Song</b>\n\n" + format_song(song)
         await event.edit(
             text,
             buttons=[[Button.inline("🎲 Another random", data="random"),
