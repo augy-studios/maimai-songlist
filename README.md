@@ -2,9 +2,9 @@
 
 Two bots for browsing the maimai DX song list, both backed by the same Supabase table.
 
-| Directory | Platform | README |
-|-----------|----------|--------|
-| [`telegram-bot/`](telegram-bot/) | Telegram (Telethon) | [README](telegram-bot/README.md) |
-| [`discord-bot/`](discord-bot/) | Discord (discord.py slash commands) | [README](discord-bot/README.md) |
+| Directory                        | Platform                            | Live Bot                                                                              | README                           |
+|----------------------------------|-------------------------------------|---------------------------------------------------------------------------------------|----------------------------------|
+| [`telegram-bot/`](telegram-bot/) | Telegram (Telethon)                 | [@maimai_songs_bot](https://t.me/maimai_songs_bot)                                    | [README](telegram-bot/README.md) |
+| [`discord-bot/`](discord-bot/)   | Discord (discord.py slash commands) | [Add to server](https://discord.com/oauth2/authorize?client_id=1507762344023818240)   | [README](discord-bot/README.md)  |
 
 Each bot has its own `requirements.txt`, `.env.example`, and setup instructions. See the individual READMEs for deployment details.
