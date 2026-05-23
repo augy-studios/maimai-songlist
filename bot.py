@@ -299,8 +299,8 @@ async def handle_callback(event):
     # ── Song detail ──
     elif action == "detail":
         song_id = int(parts[1])
-        back_context = parts[2]   # e.g. "cat|POPS＆ANIME" or "search|bad apple"
-        back_page = int(parts[3])
+        back_page = int(parts[-1])
+        back_context = "|".join(parts[2:-1])  # e.g. "cat|POPS＆ANIME" or "search|Ado"
         from db import get_song_by_id
         song = get_song_by_id(song_id)
         if not song:
