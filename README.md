@@ -33,7 +33,7 @@ You can also **type anything** (no command needed) to search by song title or ar
 - Python 3.11+
 - A Telegram account (to get API credentials)
 - A bot token from @BotFather
-- Your `maimai_songlist` table populated in Supabase
+- Your `maimai_songlist` table populated in Supabase, taken from [here](https://maimai.sega.com/assets/data/maimai_songs.json)
 
 ---
 
