@@ -478,6 +478,13 @@ async def cmd_search(interaction: discord.Interaction, query: str):
 
 # ─── Bot events ───────────────────────────────────────────────────────────────
 
+async def update_presence():
+    count = len(bot.guilds)
+    await bot.change_presence(
+        activity=discord.Game(name=f"maimai with {count} guild{'s' if count != 1 else ''}")
+    )
+
+
 @bot.event
 async def on_ready():
     logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
@@ -488,6 +495,17 @@ async def on_ready():
         logger.info(f"Slash commands synced to guild {GUILD_ID} (instant).")
     await bot.tree.sync()
     logger.info("Slash commands synced globally (DMs supported; up to 1 hour to propagate in new servers).")
+    await update_presence()
+
+
+@bot.event
+async def on_guild_join(guild: discord.Guild):
+    await update_presence()
+
+
+@bot.event
+async def on_guild_remove(guild: discord.Guild):
+    await update_presence()
 
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
