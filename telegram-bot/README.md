@@ -1,17 +1,17 @@
 # 🎵 maimai Songs Bot
 
-A Telegram bot for browsing and searching the maimai DX song list. Browse by category or search by song title / artist name. Runs in your DMs only — cannot be added to groups.
+A Telegram bot for browsing and searching the maimai DX song list. Browse by category or search by song title / artist name. Runs in your DMs only - cannot be added to groups.
 
 ---
 
 ## Features
 
-- **Category browser** — 8 categories with paginated song lists
-- **Song details** — full chart info (STD & DX difficulties, Re:Master, Utage)
-- **Free-text search** — type any title or artist at any time, no command needed
-- **Random song** — `/random` for a surprise pick
-- **Stats** — `/stats` shows song counts per category
-- **DM-only** — bot automatically leaves any group it gets added to
+- **Category browser** - 8 categories with paginated song lists
+- **Song details** - full chart info (STD & DX difficulties, Re:Master, Utage)
+- **Free-text search** - type any title or artist at any time, no command needed
+- **Random song** - `/random` for a surprise pick
+- **Stats** - `/stats` shows song counts per category
+- **DM-only** - bot automatically leaves any group it gets added to
 
 ---
 
@@ -142,7 +142,7 @@ maimai-songs-bot/
 2. Send `/newbot`
 3. Enter a display name, e.g. `maimai Songs`
 4. Enter a username ending in `bot`, e.g. `maimaisongsbot`
-5. BotFather will give you a **token** — copy it into your `.env` as `BOT_TOKEN`
+5. BotFather will give you a **token** - copy it into your `.env` as `BOT_TOKEN`
 
 ### Recommended BotFather settings
 
@@ -182,7 +182,7 @@ help - How to use this bot
 
 ```bash
 /setabouttext
-→ maimai DX song browser — search by title or artist, or browse by category.
+→ maimai DX song browser - search by title or artist, or browse by category.
 ```
 
 ---

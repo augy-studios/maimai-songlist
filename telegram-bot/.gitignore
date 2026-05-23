@@ -1,4 +1,4 @@
-# Environment variables — never commit these
+# Environment variables - never commit these
 .env
 
 # Telethon session file

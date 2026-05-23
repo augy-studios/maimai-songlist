@@ -1,5 +1,5 @@
 """
-db.py — Database layer for maimai Songs Discord Bot
+db.py - Database layer for maimai Songs Discord Bot
 
 Song data is fetched from Supabase (maimai_songlist table).
 SQLite is used for local bot state.

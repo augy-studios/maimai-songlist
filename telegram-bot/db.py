@@ -1,5 +1,5 @@
 """
-db.py — Database layer for maimai Songs Bot
+db.py - Database layer for maimai Songs Bot
 
 Song data is fetched from Supabase (maimai_songlist table).
 SQLite is used for any local bot state (future use: user preferences, etc.)

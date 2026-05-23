@@ -1,4 +1,4 @@
-# maimai Song Browser — Discord Bot
+# maimai Song Browser - Discord Bot
 
 A Discord slash-commands bot for browsing the maimai DX song list, backed by Supabase.
 
@@ -113,8 +113,8 @@ while true; do python3 bot.py; echo "Restarting in 5s…"; sleep 5; done
 
 On first start the bot syncs slash commands automatically:
 
-- **With `DISCORD_GUILD_ID` set** — commands appear in that server **instantly**.
-- **Without `DISCORD_GUILD_ID`** — global sync, takes **up to 1 hour** to propagate everywhere.
+- **With `DISCORD_GUILD_ID` set** - commands appear in that server **instantly**.
+- **Without `DISCORD_GUILD_ID`** - global sync, takes **up to 1 hour** to propagate everywhere.
 
 For development, set `DISCORD_GUILD_ID` to your test server. Remove it (or clear the value) before deploying to production.
 
@@ -127,7 +127,7 @@ discord-bot/
 ├── bot.py            # Bot logic, slash commands, interactive views
 ├── db.py             # Supabase + SQLite database layer
 ├── requirements.txt
-├── .env.example      # Template — copy to .env and fill in secrets
+├── .env.example      # Template - copy to .env and fill in secrets
 ├── .gitignore
 └── README.md
 ```

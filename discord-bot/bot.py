@@ -70,11 +70,11 @@ def make_start_embed(count: int) -> discord.Embed:
         description=(
             f"**{count} songs** in the database.\n\n"
             "**Commands:**\n"
-            "`/start` — This menu\n"
-            "`/random` — Random song\n"
-            "`/stats` — Database statistics\n"
-            "`/help` — Help & usage guide\n"
-            "`/search <query>` — Search by title or artist\n\n"
+            "`/start` - This menu\n"
+            "`/random` - Random song\n"
+            "`/stats` - Database statistics\n"
+            "`/help` - Help & usage guide\n"
+            "`/search <query>` - Search by title or artist\n\n"
             "👇 **Pick a category to browse:**"
         ),
         color=EMBED_COLOR,
@@ -91,7 +91,7 @@ def make_song_list_embed(songs: list, page: int, title: str) -> discord.Embed:
     lines = []
     for i, s in enumerate(chunk, start=start + 1):
         artist = s.get("artist") or ""
-        lines.append(f"**{i}.** {s['title']} — *{artist}*")
+        lines.append(f"**{i}.** {s['title']} - *{artist}*")
 
     embed = discord.Embed(title=title, description="\n".join(lines), color=EMBED_COLOR)
     embed.set_footer(text=f"Page {page + 1} / {total_pages}  ·  {total} songs total")
@@ -104,7 +104,7 @@ def make_song_detail_embed(song: dict) -> discord.Embed:
     cat_emoji = CATEGORY_EMOJI.get(cat_key, "🎵")
 
     embed = discord.Embed(title=song["title"], color=EMBED_COLOR)
-    embed.add_field(name="Artist", value=song.get("artist") or "—", inline=True)
+    embed.add_field(name="Artist", value=song.get("artist") or "-", inline=True)
     embed.add_field(name="Category", value=f"{cat_emoji} {cat_label}", inline=True)
 
     std_parts = []
@@ -536,11 +536,11 @@ async def cmd_help(interaction: discord.Interaction):
             "Partial, case-insensitive matches are supported.\n"
             "*Example:* `/search bad apple`  ·  `/search DECO*27`\n\n"
             "**Commands:**\n"
-            "`/start` — Main menu with category browser\n"
-            "`/random` — Get a random song\n"
-            "`/stats` — Song counts by category\n"
-            "`/search <query>` — Search by title or artist\n"
-            "`/help` — This message\n\n"
+            "`/start` - Main menu with category browser\n"
+            "`/random` - Get a random song\n"
+            "`/stats` - Song counts by category\n"
+            "`/search <query>` - Search by title or artist\n"
+            "`/help` - This message\n\n"
             "**Difficulty labels:**\n"
             "`BAS` Basic  ·  `ADV` Advanced  ·  `EXP` Expert\n"
             "`MAS` Master  ·  `Re:MAS` Re:Master\n"
@@ -576,7 +576,7 @@ async def cmd_stats(interaction: discord.Interaction):
         label = CATEGORY_DISPLAY.get(cat, cat)
         emoji = CATEGORY_EMOJI.get(cat, "🎵")
         bar = "█" * min(15, count // 10)
-        lines.append(f"{emoji} **{label}** — {count}  {bar}")
+        lines.append(f"{emoji} **{label}** - {count}  {bar}")
 
     embed = discord.Embed(
         title="📊 Song Database Statistics",

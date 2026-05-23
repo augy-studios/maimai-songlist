@@ -123,7 +123,7 @@ def paginate_song_list(songs: list, page: int, context: str) -> tuple[str, list]
 
     lines = [f"📄 Page {page + 1}/{total_pages}  ({total} songs)\n"]
     for i, s in enumerate(chunk, start=start + 1):
-        lines.append(f"{i}. <b>{html.escape(s['title'])}</b> — <i>{html.escape(s['artist'])}</i>")
+        lines.append(f"{i}. <b>{html.escape(s['title'])}</b> - <i>{html.escape(s['artist'])}</i>")
 
     text = "\n".join(lines)
 
@@ -134,7 +134,7 @@ def paginate_song_list(songs: list, page: int, context: str) -> tuple[str, list]
     if page < total_pages - 1:
         nav.append(Button.inline("Next ▶", data=f"{context}|{page + 1}"))
 
-    # Detail buttons — one per song on this page
+    # Detail buttons - one per song on this page
     detail_buttons = []
     for s in chunk:
         detail_buttons.append(
