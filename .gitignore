@@ -1,43 +1,28 @@
-# Environment variables — never commit these
-.env
+# Environment secrets (both bots)
+**/.env
 
-# Telethon session file
-*.session
-*.session-journal
+# SQLite
+**/*.db
+**/*.db-shm
+**/*.db-wal
 
-# SQLite database
-*.db
-*.db-shm
-*.db-wal
+# Telethon session files
+**/*.session
+**/*.session-journal
 
 # Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Byte-compiled files
-*.pyc
-
-# Distribution / packaging
-dist/
-build/
-*.egg-info/
-.eggs/
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/.venv/
+**/venv/
+**/env/
 
 # IDE
 .vscode/
 .idea/
 *.swp
-*.swo
-.DS_Store
+*~
 
-# Logs
-*.log
-logs/
+# macOS
+.DS_Store
