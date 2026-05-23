@@ -376,14 +376,14 @@ class RandomSongView(discord.ui.View):
 
 # ─── Slash commands ────────────────────────────────────────────────────────────
 
-@bot.tree.command(name="start", description="Show the main menu with category browser", dm_permission=True)
+@bot.tree.command(name="start", description="Show the main menu with category browser")
 async def cmd_start(interaction: discord.Interaction):
     await interaction.response.defer()
     count = await asyncio.to_thread(get_song_count)
     await interaction.followup.send(embed=make_start_embed(count), view=CategorySelectView())
 
 
-@bot.tree.command(name="help", description="Show detailed help and usage guide", dm_permission=True)
+@bot.tree.command(name="help", description="Show detailed help and usage guide")
 async def cmd_help(interaction: discord.Interaction):
     embed = discord.Embed(
         title="📖 How to use this bot",
@@ -412,7 +412,7 @@ async def cmd_help(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-@bot.tree.command(name="random", description="Get a random maimai song", dm_permission=True)
+@bot.tree.command(name="random", description="Get a random maimai song")
 async def cmd_random(interaction: discord.Interaction):
     await interaction.response.defer()
     song = await asyncio.to_thread(get_random_song)
@@ -424,7 +424,7 @@ async def cmd_random(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, view=RandomSongView())
 
 
-@bot.tree.command(name="stats", description="Show song database statistics by category", dm_permission=True)
+@bot.tree.command(name="stats", description="Show song database statistics by category")
 async def cmd_stats(interaction: discord.Interaction):
     await interaction.response.defer()
     stats = await asyncio.to_thread(get_stats)
@@ -445,7 +445,7 @@ async def cmd_stats(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-@bot.tree.command(name="search", description="Search for songs by title or artist", dm_permission=True)
+@bot.tree.command(name="search", description="Search for songs by title or artist")
 @app_commands.describe(query="Song title or artist name to search for")
 async def cmd_search(interaction: discord.Interaction, query: str):
     await interaction.response.defer()
