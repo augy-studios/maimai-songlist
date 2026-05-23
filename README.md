@@ -9,4 +9,4 @@ Two bots for browsing the maimai DX song list, both backed by the same Supabase 
 
 Each bot has its own `requirements.txt`, `.env.example`, and setup instructions. See the individual READMEs for deployment details.
 
-All database info is sourced from [the official maimai DX API](https://maimai.sega.com/assets/data/maimai_songs.json).
+All database info is sourced from [the official maimai DX songs API](https://maimai.sega.com/assets/data/maimai_songs.json).
