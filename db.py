@@ -147,14 +147,21 @@ def get_random_song() -> dict | None:
 def get_stats() -> dict[str, int]:
     """Return {catcode: count} for all categories."""
     sb = get_supabase()
-    # Fetch all catcodes and count in Python (Supabase free tier has no group-by)
-    res = (
-        sb.table("maimai_songlist")
-        .select("catcode")
-        .execute()
-    )
     counts: dict[str, int] = {}
-    for row in (res.data or []):
-        cat = row["catcode"]
-        counts[cat] = counts.get(cat, 0) + 1
+    page_size = 1000
+    offset = 0
+    while True:
+        res = (
+            sb.table("maimai_songlist")
+            .select("catcode")
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        batch = res.data or []
+        for row in batch:
+            cat = row["catcode"]
+            counts[cat] = counts.get(cat, 0) + 1
+        if len(batch) < page_size:
+            break
+        offset += page_size
     return counts
