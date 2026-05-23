@@ -150,21 +150,12 @@ def make_song_detail_embed(song: dict) -> discord.Embed:
 
 class BaseView(discord.ui.View):
     def __init__(self, **kwargs):
-        kwargs.setdefault("timeout", 180)
+        kwargs.setdefault("timeout", None)
         super().__init__(**kwargs)
         self.message: discord.Message | None = None
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return True
-
-    async def on_timeout(self):
-        for item in self.children:
-            item.disabled = True
-        if self.message:
-            try:
-                await self.message.edit(view=self)
-            except discord.HTTPException:
-                pass
 
 
 class CategorySelectView(BaseView):
