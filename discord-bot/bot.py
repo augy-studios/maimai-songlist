@@ -176,7 +176,7 @@ class CategorySelectView(discord.ui.View):
         cat_key = interaction.data["values"][0]
         songs = await asyncio.to_thread(get_songs_by_category, cat_key)
         if not songs:
-            await interaction.followup.send("No songs in this category.", ephemeral=True)
+            await interaction.followup.send("No songs in this category.", ephemeral=False)
             return
         title = f"{CATEGORY_EMOJI.get(cat_key, '')} {CATEGORY_DISPLAY.get(cat_key, cat_key)}"
         embed = make_song_list_embed(songs, 0, title)
@@ -187,7 +187,7 @@ class CategorySelectView(discord.ui.View):
         await interaction.response.defer()
         song = await asyncio.to_thread(get_random_song)
         if not song:
-            await interaction.followup.send("No songs found.", ephemeral=True)
+            await interaction.followup.send("No songs found.", ephemeral=False)
             return
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
@@ -268,7 +268,7 @@ class SongListView(discord.ui.View):
         song_id = int(interaction.data["values"][0])
         song = await asyncio.to_thread(get_song_by_id, song_id)
         if not song:
-            await interaction.followup.send("Song not found.", ephemeral=True)
+            await interaction.followup.send("Song not found.", ephemeral=False)
             return
         embed = make_song_detail_embed(song)
         view = SongDetailView(self.ctx_type, self.ctx_data, self.page, self.songs)
@@ -331,7 +331,7 @@ class SongDetailView(discord.ui.View):
         await interaction.response.defer()
         song = await asyncio.to_thread(get_random_song)
         if not song:
-            await interaction.followup.send("No songs found.", ephemeral=True)
+            await interaction.followup.send("No songs found.", ephemeral=False)
             return
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
@@ -360,7 +360,7 @@ class RandomSongView(discord.ui.View):
         await interaction.response.defer()
         song = await asyncio.to_thread(get_random_song)
         if not song:
-            await interaction.followup.send("No songs found.", ephemeral=True)
+            await interaction.followup.send("No songs found.", ephemeral=False)
             return
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
