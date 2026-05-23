@@ -1,6 +1,6 @@
-# maimai Song Browser Bots
+# maimai Song Browser Discord & Telegram Bots
 
-Two bots for browsing the maimai DX song list, both backed by the same Supabase table.
+Two bots for browsing the maimai DX song list.
 
 | Directory                        | Platform                            | Live Bot                                                                              | README                           |
 |----------------------------------|-------------------------------------|---------------------------------------------------------------------------------------|----------------------------------|

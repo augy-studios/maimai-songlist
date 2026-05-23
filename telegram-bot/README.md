@@ -1,17 +1,6 @@
-# 🎵 maimai Songs Bot
+# maimai Song Browser - Telegram Bot
 
-A Telegram bot for browsing and searching the maimai DX song list. Browse by category or search by song title / artist name. Runs in your DMs only - cannot be added to groups.
-
----
-
-## Features
-
-- **Category browser** - 8 categories with paginated song lists
-- **Song details** - full chart info (STD & DX difficulties, Re:Master, Utage)
-- **Free-text search** - type any title or artist at any time, no command needed
-- **Random song** - `/random` for a surprise pick
-- **Stats** - `/stats` shows song counts per category
-- **DM-only** - bot automatically leaves any group it gets added to
+A Telegram bot for browsing the maimai DX song list.
 
 ---
 
@@ -25,3 +14,17 @@ A Telegram bot for browsing and searching the maimai DX song list. Browse by cat
 | `/help` | Detailed usage instructions |
 
 You can also **type anything** (no command needed) to search by song title or artist name.
+
+---
+
+## Difficulty labels
+
+| Label | Meaning |
+|-------|---------|
+| BAS | Basic |
+| ADV | Advanced |
+| EXP | Expert |
+| MAS | Master |
+| Re:MAS | Re:Master |
+| STD | Standard chart type |
+| DX | Deluxe chart type |

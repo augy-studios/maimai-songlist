@@ -1,8 +1,10 @@
 # maimai Song Browser - Discord Bot
 
-A Discord slash-commands bot for browsing the maimai DX song list, backed by Supabase.
+A Discord slash-commands bot for browsing the maimai DX song list.
 
-## Features
+---
+
+## Commands
 
 | Command | Description |
 |---------|-------------|
