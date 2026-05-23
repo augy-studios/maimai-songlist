@@ -164,10 +164,10 @@ async def cmd_start(event):
         "• Browse songs by category using the buttons below\n"
         "• Type any song title or artist name to search\n\n"
         "**Commands:**\n"
-        "/start — Show this menu\n"
-        "/random — Get a random song\n"
-        "/stats — Show database statistics\n"
-        "/help — Show detailed help\n\n"
+        "/start - Show this menu\n"
+        "/random - Get a random song\n"
+        "/stats - Show database statistics\n"
+        "/help - Show detailed help\n\n"
         "👇 **Pick a category to browse:**"
     )
     await event.respond(text, buttons=make_category_buttons())
