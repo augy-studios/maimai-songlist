@@ -17,6 +17,8 @@ from db import (
     get_song_count,
     get_random_song,
     get_stats,
+    save_active_view,
+    load_all_active_views,
 )
 
 # ─── Config ───────────────────────────────────────────────────────────────────
@@ -157,6 +159,9 @@ class BaseView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return True
 
+    def _view_type_and_state(self) -> tuple[str, dict]:
+        raise NotImplementedError
+
 
 class CategorySelectView(BaseView):
     """Welcome screen: category dropdown + random button."""
@@ -171,15 +176,22 @@ class CategorySelectView(BaseView):
             )
             for k in CATEGORY_KEYS
         ]
-        sel = discord.ui.Select(placeholder="Choose a category…", options=options, row=0)
+        sel = discord.ui.Select(
+            placeholder="Choose a category…", options=options, row=0,
+            custom_id="mai_cat_sel",
+        )
         sel.callback = self._on_category
         self.add_item(sel)
 
         rand = discord.ui.Button(
-            label="🎲 Random Song", style=discord.ButtonStyle.secondary, row=1
+            label="🎲 Random Song", style=discord.ButtonStyle.secondary, row=1,
+            custom_id="mai_cat_rand",
         )
         rand.callback = self._on_random
         self.add_item(rand)
+
+    def _view_type_and_state(self):
+        return "category", {}
 
     async def _on_category(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -191,7 +203,9 @@ class CategorySelectView(BaseView):
         title = f"{CATEGORY_EMOJI.get(cat_key, '')} {CATEGORY_DISPLAY.get(cat_key, cat_key)}"
         embed = make_song_list_embed(songs, 0, title)
         view = SongListView(songs, 0, "cat", cat_key)
-        view.message = await interaction.edit_original_response(embed=embed, view=view)
+        msg = await interaction.edit_original_response(embed=embed, view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
     async def _on_random(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -202,7 +216,9 @@ class CategorySelectView(BaseView):
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
         view = RandomSongView()
-        view.message = await interaction.edit_original_response(embed=embed, view=view)
+        msg = await interaction.edit_original_response(embed=embed, view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
 
 class SongListView(BaseView):
@@ -211,26 +227,62 @@ class SongListView(BaseView):
     def __init__(self, songs: list, page: int, ctx_type: str, ctx_data: str):
         super().__init__()
         self.songs = songs
-        self.page = max(0, min(page, max(0, (len(songs) - 1) // SONGS_PER_PAGE)))
         self.ctx_type = ctx_type
         self.ctx_data = ctx_data
-        self._total_pages = max(1, (len(songs) + SONGS_PER_PAGE - 1) // SONGS_PER_PAGE)
+        total = len(songs)
+        self._total_pages = max(1, (total + SONGS_PER_PAGE - 1) // SONGS_PER_PAGE)
+        self.page = max(0, min(page, self._total_pages - 1))
+        start = self.page * SONGS_PER_PAGE
+        self._page_chunk = songs[start : start + SONGS_PER_PAGE]
         self._add_items()
 
-    def _add_items(self):
-        start = self.page * SONGS_PER_PAGE
-        chunk = self.songs[start : start + SONGS_PER_PAGE]
+    @classmethod
+    def restored(cls, state: dict) -> "SongListView":
+        """Reconstruct from SQLite state without the full songs list."""
+        obj = cls.__new__(cls)
+        discord.ui.View.__init__(obj, timeout=None)
+        obj.message = None
+        obj.songs = []
+        obj.ctx_type = state["ctx_type"]
+        obj.ctx_data = state["ctx_data"]
+        obj.page = state["page"]
+        obj._total_pages = state["total_pages"]
+        obj._page_chunk = state["page_chunk"]
+        obj._add_items()
+        return obj
 
-        # Row 0: navigation + back
-        if self.page > 0:
-            btn = discord.ui.Button(label="◀ Prev", style=discord.ButtonStyle.secondary, row=0)
-            btn.callback = self._prev
-            self.add_item(btn)
-        if self.page < self._total_pages - 1:
-            btn = discord.ui.Button(label="Next ▶", style=discord.ButtonStyle.secondary, row=0)
-            btn.callback = self._next
-            self.add_item(btn)
-        back = discord.ui.Button(label="🔙 Categories", style=discord.ButtonStyle.secondary, row=0)
+    def _view_type_and_state(self):
+        return "songlist", {
+            "ctx_type": self.ctx_type,
+            "ctx_data": self.ctx_data,
+            "page": self.page,
+            "total_pages": self._total_pages,
+            "page_chunk": [
+                {"id": s["id"], "title": s["title"], "artist": s.get("artist") or ""}
+                for s in self._page_chunk
+            ],
+        }
+
+    def _add_items(self):
+        # Row 0: prev / next always present, disabled when inapplicable (required for persistence)
+        prev = discord.ui.Button(
+            label="◀ Prev", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_sl_prev", disabled=(self.page == 0),
+        )
+        prev.callback = self._prev
+        self.add_item(prev)
+
+        nxt = discord.ui.Button(
+            label="Next ▶", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_sl_next", disabled=(self.page >= self._total_pages - 1),
+        )
+        nxt.callback = self._next
+        self.add_item(nxt)
+
+        back = discord.ui.Button(
+            label="🔙 Categories", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_sl_back",
+        )
         back.callback = self._back_cats
         self.add_item(back)
 
@@ -241,10 +293,11 @@ class SongListView(BaseView):
                 description=(s.get("artist") or "")[:100],
                 value=str(s["id"]),
             )
-            for s in chunk
+            for s in self._page_chunk
         ]
         sel = discord.ui.Select(
-            placeholder="Select a song to view details…", options=options, row=1
+            placeholder="Select a song to view details…", options=options, row=1,
+            custom_id="mai_sl_sel",
         )
         sel.callback = self._on_song
         self.add_item(sel)
@@ -255,27 +308,41 @@ class SongListView(BaseView):
             return f"{CATEGORY_EMOJI.get(k, '')} {CATEGORY_DISPLAY.get(k, k)}"
         return f'🔍 Results for "{self.ctx_data}"'
 
+    async def _ensure_songs(self) -> list[dict]:
+        """Lazy-load the full songs list (needed after restore from SQLite)."""
+        if not self.songs:
+            if self.ctx_type == "cat":
+                self.songs = await asyncio.to_thread(get_songs_by_category, self.ctx_data)
+            else:
+                self.songs = await asyncio.to_thread(search_songs, self.ctx_data)
+            self._total_pages = max(1, (len(self.songs) + SONGS_PER_PAGE - 1) // SONGS_PER_PAGE)
+        return self.songs
+
     async def _prev(self, interaction: discord.Interaction):
-        view = SongListView(self.songs, self.page - 1, self.ctx_type, self.ctx_data)
+        songs = await self._ensure_songs()
+        view = SongListView(songs, self.page - 1, self.ctx_type, self.ctx_data)
         view.message = interaction.message
+        await _persist(view, interaction.message.id)
         await interaction.response.edit_message(
-            embed=make_song_list_embed(self.songs, self.page - 1, self._title()), view=view
+            embed=make_song_list_embed(songs, self.page - 1, self._title()), view=view
         )
 
     async def _next(self, interaction: discord.Interaction):
-        view = SongListView(self.songs, self.page + 1, self.ctx_type, self.ctx_data)
+        songs = await self._ensure_songs()
+        view = SongListView(songs, self.page + 1, self.ctx_type, self.ctx_data)
         view.message = interaction.message
+        await _persist(view, interaction.message.id)
         await interaction.response.edit_message(
-            embed=make_song_list_embed(self.songs, self.page + 1, self._title()), view=view
+            embed=make_song_list_embed(songs, self.page + 1, self._title()), view=view
         )
 
     async def _back_cats(self, interaction: discord.Interaction):
         await interaction.response.defer()
         count = await asyncio.to_thread(get_song_count)
         view = CategorySelectView()
-        view.message = await interaction.edit_original_response(
-            embed=make_start_embed(count), view=view
-        )
+        msg = await interaction.edit_original_response(embed=make_start_embed(count), view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
     async def _on_song(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -285,8 +352,10 @@ class SongListView(BaseView):
             await interaction.followup.send("Song not found.", ephemeral=False)
             return
         embed = make_song_detail_embed(song)
-        view = SongDetailView(self.ctx_type, self.ctx_data, self.page, self.songs)
-        view.message = await interaction.edit_original_response(embed=embed, view=view)
+        view = SongDetailView(self.ctx_type, self.ctx_data, self.page, self.songs or None)
+        msg = await interaction.edit_original_response(embed=embed, view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
 
 class SongDetailView(BaseView):
@@ -305,17 +374,33 @@ class SongDetailView(BaseView):
         self.page = page
         self._songs = songs  # cached to skip re-fetch on Back
 
-        btn = discord.ui.Button(label="🔙 Back to list", style=discord.ButtonStyle.secondary, row=0)
+        btn = discord.ui.Button(
+            label="🔙 Back to list", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_sd_back",
+        )
         btn.callback = self._back_list
         self.add_item(btn)
 
-        btn = discord.ui.Button(label="🏠 Categories", style=discord.ButtonStyle.secondary, row=0)
+        btn = discord.ui.Button(
+            label="🏠 Categories", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_sd_cats",
+        )
         btn.callback = self._back_cats
         self.add_item(btn)
 
-        btn = discord.ui.Button(label="🎲 Random", style=discord.ButtonStyle.secondary, row=0)
+        btn = discord.ui.Button(
+            label="🎲 Random", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_sd_rand",
+        )
         btn.callback = self._random
         self.add_item(btn)
+
+    def _view_type_and_state(self):
+        return "songdetail", {
+            "ctx_type": self.ctx_type,
+            "ctx_data": self.ctx_data,
+            "page": self.page,
+        }
 
     async def _back_list(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -332,15 +417,17 @@ class SongDetailView(BaseView):
             title = f'🔍 Results for "{self.ctx_data}"'
         embed = make_song_list_embed(songs, self.page, title)
         view = SongListView(songs, self.page, self.ctx_type, self.ctx_data)
-        view.message = await interaction.edit_original_response(embed=embed, view=view)
+        msg = await interaction.edit_original_response(embed=embed, view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
     async def _back_cats(self, interaction: discord.Interaction):
         await interaction.response.defer()
         count = await asyncio.to_thread(get_song_count)
         view = CategorySelectView()
-        view.message = await interaction.edit_original_response(
-            embed=make_start_embed(count), view=view
-        )
+        msg = await interaction.edit_original_response(embed=make_start_embed(count), view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
     async def _random(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -351,7 +438,9 @@ class SongDetailView(BaseView):
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
         view = RandomSongView()
-        view.message = await interaction.edit_original_response(embed=embed, view=view)
+        msg = await interaction.edit_original_response(embed=embed, view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
 
 class RandomSongView(BaseView):
@@ -361,16 +450,21 @@ class RandomSongView(BaseView):
         super().__init__()
 
         btn = discord.ui.Button(
-            label="🎲 Another Random", style=discord.ButtonStyle.secondary, row=0
+            label="🎲 Another Random", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_rv_rand",
         )
         btn.callback = self._random
         self.add_item(btn)
 
         btn = discord.ui.Button(
-            label="🏠 Categories", style=discord.ButtonStyle.secondary, row=0
+            label="🏠 Categories", style=discord.ButtonStyle.secondary, row=0,
+            custom_id="mai_rv_cats",
         )
         btn.callback = self._back_cats
         self.add_item(btn)
+
+    def _view_type_and_state(self):
+        return "random", {}
 
     async def _random(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -381,15 +475,38 @@ class RandomSongView(BaseView):
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
         view = RandomSongView()
-        view.message = await interaction.edit_original_response(embed=embed, view=view)
+        msg = await interaction.edit_original_response(embed=embed, view=view)
+        view.message = msg
+        await _persist(view, msg.id)
 
     async def _back_cats(self, interaction: discord.Interaction):
         await interaction.response.defer()
         count = await asyncio.to_thread(get_song_count)
         view = CategorySelectView()
-        view.message = await interaction.edit_original_response(
-            embed=make_start_embed(count), view=view
-        )
+        msg = await interaction.edit_original_response(embed=make_start_embed(count), view=view)
+        view.message = msg
+        await _persist(view, msg.id)
+
+
+# ─── Persistence helpers ───────────────────────────────────────────────────────
+
+async def _persist(view: BaseView, message_id: int) -> None:
+    """Save view state to SQLite and re-register with the bot."""
+    vtype, vstate = view._view_type_and_state()
+    await asyncio.to_thread(save_active_view, message_id, vtype, vstate)
+    bot.add_view(view, message_id=message_id)
+
+
+def _reconstruct_view(view_type: str, state: dict) -> BaseView | None:
+    if view_type == "category":
+        return CategorySelectView()
+    if view_type == "random":
+        return RandomSongView()
+    if view_type == "songlist":
+        return SongListView.restored(state)
+    if view_type == "songdetail":
+        return SongDetailView(state["ctx_type"], state["ctx_data"], state["page"])
+    return None
 
 
 # ─── Slash commands ────────────────────────────────────────────────────────────
@@ -399,7 +516,9 @@ async def cmd_start(interaction: discord.Interaction):
     await interaction.response.defer()
     count = await asyncio.to_thread(get_song_count)
     view = CategorySelectView()
-    view.message = await interaction.followup.send(embed=make_start_embed(count), view=view)
+    msg = await interaction.followup.send(embed=make_start_embed(count), view=view)
+    view.message = msg
+    await _persist(view, msg.id)
 
 
 @bot.tree.command(name="help", description="Show detailed help and usage guide")
@@ -441,7 +560,9 @@ async def cmd_random(interaction: discord.Interaction):
     embed = make_song_detail_embed(song)
     embed.set_author(name="🎲 Random Song")
     view = RandomSongView()
-    view.message = await interaction.followup.send(embed=embed, view=view)
+    msg = await interaction.followup.send(embed=embed, view=view)
+    view.message = msg
+    await _persist(view, msg.id)
 
 
 @bot.tree.command(name="stats", description="Show song database statistics by category")
@@ -486,13 +607,17 @@ async def cmd_search(interaction: discord.Interaction, query: str):
         embed = make_song_detail_embed(results[0])
         embed.set_author(name=f'🔍 1 result for "{query}"')
         view = SongDetailView("search", query, 0, results)
-        view.message = await interaction.followup.send(embed=embed, view=view)
+        msg = await interaction.followup.send(embed=embed, view=view)
+        view.message = msg
+        await _persist(view, msg.id)
         return
 
     title = f'🔍 Results for "{query}"'
     embed = make_song_list_embed(results, 0, title)
     view = SongListView(results, 0, "search", query)
-    view.message = await interaction.followup.send(embed=embed, view=view)
+    msg = await interaction.followup.send(embed=embed, view=view)
+    view.message = msg
+    await _persist(view, msg.id)
 
 
 # ─── Bot events ───────────────────────────────────────────────────────────────
@@ -507,6 +632,16 @@ async def update_presence():
 @bot.event
 async def on_ready():
     logger.info(f"Logged in as {bot.user} (ID: {bot.user.id})")
+
+    rows = await asyncio.to_thread(load_all_active_views)
+    restored = 0
+    for message_id, view_type, state in rows:
+        view = _reconstruct_view(view_type, state)
+        if view:
+            bot.add_view(view, message_id=message_id)
+            restored += 1
+    logger.info(f"Restored {restored} persistent view(s) from SQLite.")
+
     if GUILD_ID:
         guild = discord.Object(id=int(GUILD_ID))
         bot.tree.copy_global_to(guild=guild)

@@ -6,6 +6,7 @@ SQLite is used for local bot state.
 """
 
 import os
+import json
 import sqlite3
 import logging
 from supabase import create_client, Client
@@ -41,9 +42,35 @@ def init_db():
             created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS active_views (
+            message_id  INTEGER PRIMARY KEY,
+            view_type   TEXT    NOT NULL,
+            state       TEXT    NOT NULL DEFAULT '{}'
+        )
+    """)
     conn.commit()
     conn.close()
     logger.info("SQLite initialised.")
+
+
+def save_active_view(message_id: int, view_type: str, state: dict) -> None:
+    conn = sqlite3.connect(SQLITE_PATH)
+    conn.execute(
+        "INSERT OR REPLACE INTO active_views (message_id, view_type, state) VALUES (?, ?, ?)",
+        (message_id, view_type, json.dumps(state, ensure_ascii=False)),
+    )
+    conn.commit()
+    conn.close()
+
+
+def load_all_active_views() -> list[tuple[int, str, dict]]:
+    conn = sqlite3.connect(SQLITE_PATH)
+    rows = conn.execute(
+        "SELECT message_id, view_type, state FROM active_views"
+    ).fetchall()
+    conn.close()
+    return [(r[0], r[1], json.loads(r[2])) for r in rows]
 
 
 # ─── Supabase queries ─────────────────────────────────────────────────────────
