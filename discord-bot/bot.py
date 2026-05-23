@@ -148,11 +148,30 @@ def make_song_detail_embed(song: dict) -> discord.Embed:
 
 # ─── Views ─────────────────────────────────────────────────────────────────────
 
-class CategorySelectView(discord.ui.View):
+class BaseView(discord.ui.View):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("timeout", 180)
+        super().__init__(**kwargs)
+        self.message: discord.Message | None = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return True
+
+    async def on_timeout(self):
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
+
+
+class CategorySelectView(BaseView):
     """Welcome screen: category dropdown + random button."""
 
     def __init__(self):
-        super().__init__(timeout=1800)
+        super().__init__()
 
         options = [
             discord.SelectOption(
@@ -181,7 +200,7 @@ class CategorySelectView(discord.ui.View):
         title = f"{CATEGORY_EMOJI.get(cat_key, '')} {CATEGORY_DISPLAY.get(cat_key, cat_key)}"
         embed = make_song_list_embed(songs, 0, title)
         view = SongListView(songs, 0, "cat", cat_key)
-        await interaction.edit_original_response(embed=embed, view=view)
+        view.message = await interaction.edit_original_response(embed=embed, view=view)
 
     async def _on_random(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -191,14 +210,15 @@ class CategorySelectView(discord.ui.View):
             return
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
-        await interaction.edit_original_response(embed=embed, view=RandomSongView())
+        view = RandomSongView()
+        view.message = await interaction.edit_original_response(embed=embed, view=view)
 
 
-class SongListView(discord.ui.View):
+class SongListView(BaseView):
     """Paginated song list with a select-dropdown for details."""
 
     def __init__(self, songs: list, page: int, ctx_type: str, ctx_data: str):
-        super().__init__(timeout=1800)
+        super().__init__()
         self.songs = songs
         self.page = max(0, min(page, max(0, (len(songs) - 1) // SONGS_PER_PAGE)))
         self.ctx_type = ctx_type
@@ -246,12 +266,14 @@ class SongListView(discord.ui.View):
 
     async def _prev(self, interaction: discord.Interaction):
         view = SongListView(self.songs, self.page - 1, self.ctx_type, self.ctx_data)
+        view.message = interaction.message
         await interaction.response.edit_message(
             embed=make_song_list_embed(self.songs, self.page - 1, self._title()), view=view
         )
 
     async def _next(self, interaction: discord.Interaction):
         view = SongListView(self.songs, self.page + 1, self.ctx_type, self.ctx_data)
+        view.message = interaction.message
         await interaction.response.edit_message(
             embed=make_song_list_embed(self.songs, self.page + 1, self._title()), view=view
         )
@@ -259,8 +281,9 @@ class SongListView(discord.ui.View):
     async def _back_cats(self, interaction: discord.Interaction):
         await interaction.response.defer()
         count = await asyncio.to_thread(get_song_count)
-        await interaction.edit_original_response(
-            embed=make_start_embed(count), view=CategorySelectView()
+        view = CategorySelectView()
+        view.message = await interaction.edit_original_response(
+            embed=make_start_embed(count), view=view
         )
 
     async def _on_song(self, interaction: discord.Interaction):
@@ -272,10 +295,10 @@ class SongListView(discord.ui.View):
             return
         embed = make_song_detail_embed(song)
         view = SongDetailView(self.ctx_type, self.ctx_data, self.page, self.songs)
-        await interaction.edit_original_response(embed=embed, view=view)
+        view.message = await interaction.edit_original_response(embed=embed, view=view)
 
 
-class SongDetailView(discord.ui.View):
+class SongDetailView(BaseView):
     """Song detail screen with back-to-list, categories, and random buttons."""
 
     def __init__(
@@ -285,7 +308,7 @@ class SongDetailView(discord.ui.View):
         page: int,
         songs: list | None = None,
     ):
-        super().__init__(timeout=1800)
+        super().__init__()
         self.ctx_type = ctx_type
         self.ctx_data = ctx_data
         self.page = page
@@ -318,13 +341,14 @@ class SongDetailView(discord.ui.View):
             title = f'🔍 Results for "{self.ctx_data}"'
         embed = make_song_list_embed(songs, self.page, title)
         view = SongListView(songs, self.page, self.ctx_type, self.ctx_data)
-        await interaction.edit_original_response(embed=embed, view=view)
+        view.message = await interaction.edit_original_response(embed=embed, view=view)
 
     async def _back_cats(self, interaction: discord.Interaction):
         await interaction.response.defer()
         count = await asyncio.to_thread(get_song_count)
-        await interaction.edit_original_response(
-            embed=make_start_embed(count), view=CategorySelectView()
+        view = CategorySelectView()
+        view.message = await interaction.edit_original_response(
+            embed=make_start_embed(count), view=view
         )
 
     async def _random(self, interaction: discord.Interaction):
@@ -335,14 +359,15 @@ class SongDetailView(discord.ui.View):
             return
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
-        await interaction.edit_original_response(embed=embed, view=RandomSongView())
+        view = RandomSongView()
+        view.message = await interaction.edit_original_response(embed=embed, view=view)
 
 
-class RandomSongView(discord.ui.View):
+class RandomSongView(BaseView):
     """Random song screen with another-random and categories buttons."""
 
     def __init__(self):
-        super().__init__(timeout=1800)
+        super().__init__()
 
         btn = discord.ui.Button(
             label="🎲 Another Random", style=discord.ButtonStyle.secondary, row=0
@@ -364,13 +389,15 @@ class RandomSongView(discord.ui.View):
             return
         embed = make_song_detail_embed(song)
         embed.set_author(name="🎲 Random Song")
-        await interaction.edit_original_response(embed=embed, view=RandomSongView())
+        view = RandomSongView()
+        view.message = await interaction.edit_original_response(embed=embed, view=view)
 
     async def _back_cats(self, interaction: discord.Interaction):
         await interaction.response.defer()
         count = await asyncio.to_thread(get_song_count)
-        await interaction.edit_original_response(
-            embed=make_start_embed(count), view=CategorySelectView()
+        view = CategorySelectView()
+        view.message = await interaction.edit_original_response(
+            embed=make_start_embed(count), view=view
         )
 
 
@@ -380,7 +407,8 @@ class RandomSongView(discord.ui.View):
 async def cmd_start(interaction: discord.Interaction):
     await interaction.response.defer()
     count = await asyncio.to_thread(get_song_count)
-    await interaction.followup.send(embed=make_start_embed(count), view=CategorySelectView())
+    view = CategorySelectView()
+    view.message = await interaction.followup.send(embed=make_start_embed(count), view=view)
 
 
 @bot.tree.command(name="help", description="Show detailed help and usage guide")
@@ -421,7 +449,8 @@ async def cmd_random(interaction: discord.Interaction):
         return
     embed = make_song_detail_embed(song)
     embed.set_author(name="🎲 Random Song")
-    await interaction.followup.send(embed=embed, view=RandomSongView())
+    view = RandomSongView()
+    view.message = await interaction.followup.send(embed=embed, view=view)
 
 
 @bot.tree.command(name="stats", description="Show song database statistics by category")
@@ -465,15 +494,14 @@ async def cmd_search(interaction: discord.Interaction, query: str):
     if len(results) == 1:
         embed = make_song_detail_embed(results[0])
         embed.set_author(name=f'🔍 1 result for "{query}"')
-        await interaction.followup.send(
-            embed=embed, view=SongDetailView("search", query, 0, results)
-        )
+        view = SongDetailView("search", query, 0, results)
+        view.message = await interaction.followup.send(embed=embed, view=view)
         return
 
     title = f'🔍 Results for "{query}"'
     embed = make_song_list_embed(results, 0, title)
     view = SongListView(results, 0, "search", query)
-    await interaction.followup.send(embed=embed, view=view)
+    view.message = await interaction.followup.send(embed=embed, view=view)
 
 
 # ─── Bot events ───────────────────────────────────────────────────────────────
