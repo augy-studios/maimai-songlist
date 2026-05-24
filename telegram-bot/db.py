@@ -1,9 +1,4 @@
-"""
-db.py - Database layer for maimai Songs Bot
-
-Song data is fetched from Supabase (maimai_songlist table).
-SQLite is used for any local bot state (future use: user preferences, etc.)
-"""
+"""Database layer: Supabase for songs, SQLite for bot state."""
 
 import os
 import sqlite3
@@ -29,13 +24,13 @@ def get_supabase() -> Client:
     return _supabase
 
 
-# ─── SQLite (local state) ─────────────────────────────────────────────────────
+# ─── SQLite (local state)
 
 def init_db():
     """Initialise local SQLite database for bot state."""
     conn = sqlite3.connect(SQLITE_PATH)
     c = conn.cursor()
-    # Placeholder table for future user preferences / history
+    # user_prefs: placeholder for future preferences
     c.execute("""
         CREATE TABLE IF NOT EXISTS user_prefs (
             user_id     INTEGER PRIMARY KEY,
@@ -48,7 +43,7 @@ def init_db():
     logger.info("SQLite initialised.")
 
 
-# ─── Supabase queries ─────────────────────────────────────────────────────────
+# ─── Supabase queries
 
 def _rows_to_dicts(rows) -> list[dict]:
     return rows if rows else []
@@ -67,10 +62,10 @@ def get_songs_by_category(category: str) -> list[dict]:
 
 
 def search_songs(query: str) -> list[dict]:
-    """Full-text style search across title and artist using ilike."""
+    """Search title and artist with ilike."""
     sb = get_supabase()
     q = f"%{query}%"
-    # Supabase postgrest: filter with or
+    # postgrest OR filter
     res = (
         sb.table("maimai_songlist")
         .select("*")
@@ -121,10 +116,10 @@ def get_song_count() -> int:
 
 
 def get_random_song() -> dict | None:
-    """Fetch a random song. Uses Postgres random() via RPC or offset trick."""
+    """Fetch a random song via random offset."""
     import random
     sb = get_supabase()
-    # Get total count then fetch one at random offset
+    # random offset into total count
     count_res = (
         sb.table("maimai_songlist")
         .select("id", count="exact")
@@ -145,7 +140,7 @@ def get_random_song() -> dict | None:
 
 
 def get_stats() -> dict[str, int]:
-    """Return {catcode: count} for all categories."""
+    """Return {catcode: count} per category."""
     sb = get_supabase()
     counts: dict[str, int] = {}
     page_size = 1000

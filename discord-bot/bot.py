@@ -21,10 +21,10 @@ from db import (
     load_all_active_views,
 )
 
-# ─── Config ───────────────────────────────────────────────────────────────────
+# ─── Config
 
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-GUILD_ID = os.getenv("DISCORD_GUILD_ID")  # optional: instant sync to one server
+GUILD_ID = os.getenv("DISCORD_GUILD_ID")  # optional: guild-only sync
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,7 +62,7 @@ intents = discord.Intents.default()
 bot = commands.Bot(command_prefix=commands.when_mentioned, intents=intents)
 
 
-# ─── Embed helpers ─────────────────────────────────────────────────────────────
+# ─── Embed helpers
 
 def make_start_embed(count: int) -> discord.Embed:
     return discord.Embed(
@@ -148,7 +148,7 @@ def make_song_detail_embed(song: dict) -> discord.Embed:
     return embed
 
 
-# ─── Views ─────────────────────────────────────────────────────────────────────
+# ─── Views
 
 class BaseView(discord.ui.View):
     def __init__(self, **kwargs):
@@ -164,7 +164,7 @@ class BaseView(discord.ui.View):
 
 
 class CategorySelectView(BaseView):
-    """Welcome screen: category dropdown + random button."""
+    """Welcome screen with category picker."""
 
     def __init__(self):
         super().__init__()
@@ -222,7 +222,7 @@ class CategorySelectView(BaseView):
 
 
 class SongListView(BaseView):
-    """Paginated song list with a select-dropdown for details."""
+    """Paginated song list."""
 
     def __init__(self, songs: list, page: int, ctx_type: str, ctx_data: str):
         super().__init__()
@@ -238,7 +238,7 @@ class SongListView(BaseView):
 
     @classmethod
     def restored(cls, state: dict) -> "SongListView":
-        """Reconstruct from SQLite state without the full songs list."""
+        """Restore from SQLite (no full song list)."""
         obj = cls.__new__(cls)
         discord.ui.View.__init__(obj, timeout=None)
         obj.message = None
@@ -264,7 +264,7 @@ class SongListView(BaseView):
         }
 
     def _add_items(self):
-        # Row 0: prev / next always present, disabled when inapplicable (required for persistence)
+        # prev/next always present; disabled when inapplicable
         prev = discord.ui.Button(
             label="◀ Prev", style=discord.ButtonStyle.secondary, row=0,
             custom_id="mai_sl_prev", disabled=(self.page == 0),
@@ -309,7 +309,7 @@ class SongListView(BaseView):
         return f'🔍 Results for "{self.ctx_data}"'
 
     async def _ensure_songs(self) -> list[dict]:
-        """Lazy-load the full songs list (needed after restore from SQLite)."""
+        """Lazy-load songs (after SQLite restore)."""
         if not self.songs:
             if self.ctx_type == "cat":
                 self.songs = await asyncio.to_thread(get_songs_by_category, self.ctx_data)
@@ -359,7 +359,7 @@ class SongListView(BaseView):
 
 
 class SongDetailView(BaseView):
-    """Song detail screen with back-to-list, categories, and random buttons."""
+    """Song detail screen."""
 
     def __init__(
         self,
@@ -372,7 +372,7 @@ class SongDetailView(BaseView):
         self.ctx_type = ctx_type
         self.ctx_data = ctx_data
         self.page = page
-        self._songs = songs  # cached to skip re-fetch on Back
+        self._songs = songs  # cache to avoid re-fetch
 
         btn = discord.ui.Button(
             label="🔙 Back to list", style=discord.ButtonStyle.secondary, row=0,
@@ -444,7 +444,7 @@ class SongDetailView(BaseView):
 
 
 class RandomSongView(BaseView):
-    """Random song screen with another-random and categories buttons."""
+    """Random song screen."""
 
     def __init__(self):
         super().__init__()
@@ -488,10 +488,10 @@ class RandomSongView(BaseView):
         await _persist(view, msg.id)
 
 
-# ─── Persistence helpers ───────────────────────────────────────────────────────
+# ─── Persistence helpers
 
 async def _persist(view: BaseView, message_id: int) -> None:
-    """Save view state to SQLite and re-register with the bot."""
+    """Persist view state and re-register."""
     vtype, vstate = view._view_type_and_state()
     await asyncio.to_thread(save_active_view, message_id, vtype, vstate)
     bot.add_view(view, message_id=message_id)
@@ -509,7 +509,7 @@ def _reconstruct_view(view_type: str, state: dict) -> BaseView | None:
     return None
 
 
-# ─── Slash commands ────────────────────────────────────────────────────────────
+# ─── Slash commands
 
 @bot.tree.command(name="start", description="Show the main menu with category browser")
 async def cmd_start(interaction: discord.Interaction):
@@ -620,7 +620,7 @@ async def cmd_search(interaction: discord.Interaction, query: str):
     await _persist(view, msg.id)
 
 
-# ─── Bot events ───────────────────────────────────────────────────────────────
+# ─── Bot events
 
 async def update_presence():
     count = len(bot.guilds)
@@ -662,7 +662,7 @@ async def on_guild_remove(guild: discord.Guild):
     await update_presence()
 
 
-# ─── Entry point ──────────────────────────────────────────────────────────────
+# ─── Entry point
 
 async def main():
     init_db()

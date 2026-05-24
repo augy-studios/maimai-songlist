@@ -1,9 +1,4 @@
-"""
-db.py - Database layer for maimai Songs Discord Bot
-
-Song data is fetched from Supabase (maimai_songlist table).
-SQLite is used for local bot state.
-"""
+"""Database layer: Supabase for songs, SQLite for bot state."""
 
 import os
 import json
@@ -30,7 +25,7 @@ def get_supabase() -> Client:
     return _supabase
 
 
-# ─── SQLite (local state) ─────────────────────────────────────────────────────
+# ─── SQLite (local state)
 
 def init_db():
     conn = sqlite3.connect(SQLITE_PATH)
@@ -73,7 +68,7 @@ def load_all_active_views() -> list[tuple[int, str, dict]]:
     return [(r[0], r[1], json.loads(r[2])) for r in rows]
 
 
-# ─── Supabase queries ─────────────────────────────────────────────────────────
+# ─── Supabase queries
 
 def _rows(res) -> list[dict]:
     return res.data if res.data else []

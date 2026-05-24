@@ -48,10 +48,10 @@ CATEGORY_EMOJI = {
 }
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# ─── Helpers
 
 def make_category_buttons():
-    """8 category buttons in a 2-column grid."""
+    """Category buttons in a 2-column grid."""
     buttons = []
     row = []
     for key, label in CATEGORY_DISPLAY.items():
@@ -66,7 +66,7 @@ def make_category_buttons():
 
 
 def format_song(song: dict) -> str:
-    """Format a single song entry for display."""
+    """Format a song entry for display."""
     cat = CATEGORY_DISPLAY.get(song["catcode"], song["catcode"])
     lines = [
         f"🎵 <b>{html.escape(song['title'])}</b>",
@@ -113,7 +113,7 @@ def format_song(song: dict) -> str:
 
 
 def paginate_song_list(songs: list, page: int, context: str) -> tuple[str, list]:
-    """Return (text, buttons) for a paginated song list."""
+    """Return (text, buttons) for a song list page."""
     total = len(songs)
     total_pages = max(1, (total + SONGS_PER_PAGE - 1) // SONGS_PER_PAGE)
     page = max(0, min(page, total_pages - 1))
@@ -134,7 +134,7 @@ def paginate_song_list(songs: list, page: int, context: str) -> tuple[str, list]
     if page < total_pages - 1:
         nav.append(Button.inline("Next ▶", data=f"{context}|{page + 1}"))
 
-    # Detail buttons - one per song on this page
+    # Detail buttons
     detail_buttons = []
     for s in chunk:
         detail_buttons.append(
@@ -152,7 +152,7 @@ def paginate_song_list(songs: list, page: int, context: str) -> tuple[str, list]
     return text, buttons
 
 
-# ─── /start ───────────────────────────────────────────────────────────────────
+# ─── /start
 
 def make_start_text() -> str:
     total = get_song_count()
@@ -178,7 +178,7 @@ async def cmd_start(event):
     await event.respond(make_start_text(), buttons=make_category_buttons())
 
 
-# ─── /help ────────────────────────────────────────────────────────────────────
+# ─── /help
 
 @client.on(events.NewMessage(pattern=r"^/help$"))
 async def cmd_help(event):
@@ -208,7 +208,7 @@ async def cmd_help(event):
     await event.respond(text)
 
 
-# ─── /random ──────────────────────────────────────────────────────────────────
+# ─── /random
 
 @client.on(events.NewMessage(pattern=r"^/random$"))
 async def cmd_random(event):
@@ -228,7 +228,7 @@ async def cmd_random(event):
     )
 
 
-# ─── /stats ───────────────────────────────────────────────────────────────────
+# ─── /stats
 
 @client.on(events.NewMessage(pattern=r"^/stats$"))
 async def cmd_stats(event):
@@ -247,7 +247,7 @@ async def cmd_stats(event):
     await event.respond("\n".join(lines))
 
 
-# ─── Free-text search ─────────────────────────────────────────────────────────
+# ─── Free-text search
 
 @client.on(events.NewMessage())
 async def handle_search(event):
@@ -268,14 +268,13 @@ async def handle_search(event):
         await event.respond("🔍 <b>Found 1 song:</b>\n\n" + format_song(results[0]))
         return
 
-    # Cache search results temporarily using inline data with query embedded
-    # For multi-page search results we encode the query in callback data
+    # encode query in callback data for pagination
     query_encoded = text[:40].replace("|", " ")  # sanitise for callback data
     page_text, buttons = paginate_song_list(results, 0, f"search|{query_encoded}")
     await event.respond(f"🔍 <b>Results for \"{html.escape(text)}\":</b>\n\n" + page_text, buttons=buttons)
 
 
-# ─── Callback queries ─────────────────────────────────────────────────────────
+# ─── Callback queries
 
 @client.on(events.CallbackQuery())
 async def handle_callback(event):
@@ -336,7 +335,7 @@ async def handle_callback(event):
     await event.answer()
 
 
-# ─── Block group usage ────────────────────────────────────────────────────────
+# ─── Block group usage
 
 @client.on(events.ChatAction())
 async def block_group_adds(event):
@@ -348,7 +347,7 @@ async def block_group_adds(event):
             logger.warning(f"Could not leave chat {event.chat_id}: {e}")
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
+# ─── Main
 
 async def main():
     init_db()
